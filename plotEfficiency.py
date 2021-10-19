@@ -19,7 +19,7 @@ def getArgumentParser():
     parser = ArgumentParser()
     parser.add_argument('--ntuple_path', default='/nfs/dust/atlas/user/pgadow/ftag/data/ntuple_links/', help='path to ntuples')
     parser.add_argument('--ntuple_file_pattern', default='user.alfroch.410470.btagTraining.e6337_s3126_r10201_p3985.EMPFlow.2021-09-07-T122808-R14883_output.h5/*.h5', help='ntuples pattern')
-    parser.add_argument('--n_jets', default=5e6)
+    parser.add_argument('--n_jets', default=5e5)
     parser.add_argument('--binning', default=os.path.join('data', 'binning.yml'))
     parser.add_argument('--compare_cdi', default=os.path.join('data', 'cdi_dump.csv'))
     return parser
@@ -36,7 +36,7 @@ def get_jets(filename, n_jets=-1, jet_flavour=-1):
     data_set = h5py.File(filename, "r")
     jets = data_set["jets"]
     if jet_flavour > 0:
-        jets = jets[jets["HadronConeExclTruthLabelID"] == 5]
+        jets = jets[jets["HadronConeExclTruthLabelID"] == int(jet_flavour)]
     logging.info(f"Total number of jets in file: {jets.size}")
     if n_jets > 0:
         jets = jets[:n_jets]
@@ -90,10 +90,14 @@ def plotEfficiency(eff_dict, eff_wp, label, variable, bins, cdi_data=None):
     fig.savefig(f"eff_{variable}_{int(eff_wp)}.png")
 
 
-def plotEfficiency2D(eff, eff_wp, label, var_x, var_y, binning_x, binning_y):
+def plotEfficiency2D(eff, eff_wp, label, var_x, var_y, binning_x, binning_y, ratio=False):
     fig, ax = plt.subplots()
-    cmap = sns.color_palette("viridis", as_cmap=True)
-    sns.heatmap(eff, linewidths=.5, cmap=cmap, vmin=0., vmax=1., annot=True, fmt=".2f", )
+    if ratio:
+        cmap = sns.color_palette("vlag", as_cmap=True)
+        sns.heatmap(eff, linewidths=.5, cmap=cmap, vmin=.5, vmax=1.5, annot=True, fmt=".2f", )
+    else:
+        cmap = sns.color_palette("viridis", as_cmap=True)
+        sns.heatmap(eff, linewidths=.5, cmap=cmap, vmin=0., vmax=1., annot=True, fmt=".2f", )
     plt.xlabel(var_x)
     plt.ylabel(var_y)
     fig.savefig(f'eff_{eff_wp}_{label}.png')
@@ -189,8 +193,14 @@ def main():
         print(selected_data_eff)
         print(selected_data_cdi)
 
+        selected_data_ratio = selected_data_eff / selected_data_cdi
+
+        print(selected_data_ratio)
+
         plotEfficiency2D(selected_data_eff, eff_wp, 'dl1r_b_ttbar_tdd', 'pt', 'eta', binning_pt, binning_eta)
         plotEfficiency2D(selected_data_cdi, eff_wp, 'dl1r_b_ttbar_cdi', 'pt', 'eta', binning_pt, binning_eta)
+
+        plotEfficiency2D(selected_data_ratio, eff_wp, 'dl1r_b_ttbar_ratio', 'pt', 'eta', binning_pt, binning_eta, ratio=True)
 
 
 if __name__ == '__main__':
